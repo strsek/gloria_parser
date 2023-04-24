@@ -1,7 +1,8 @@
 # derive the IO table from the MRSUT tables and store results as clean rds files
 
+# specifiy years to derive MRIO for
 years = c(2014, 2020)
-#year = 2014
+#year = 2020
 
 indices <- readRDS(str_c(path$storeMRIOModel,"indices.rds"))
 
@@ -68,13 +69,15 @@ for(year in years){
   D[is.na(D)] <- 0            # Set NaN (due to zero gross output) to zero
   
   x <- colSums( t(D) * q )  # If x is calculated directly from S, this results in negative values in L
+  # TODO: why does this differ from colSums(S)?
   x[x == 0] <- 10^-7
   
   # since all sectors produce only one product, q should be equal to x
   all.equal(q, x)
   
   # Commodity by industry coefficient matrix
-  B <- t(t(U)/x)                  
+  B <- t(t(U)/x)
+  # TODO:why are there values and column sums >1 here? This causes values >1 in A and then negatives in L!
   
   # Set NaN (due to zero gross output) to zero
   B[is.na(B)] <- 0                
@@ -84,6 +87,7 @@ for(year in years){
   A <- B %*% D
   
   # Set negative and very small values to zero to allow inversion 
+  if(min(A) < 0) stop("negatives in q")
   # A[A < 0] <- 0
   
   # generate Z
